@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { firebase } from '../Firebase/config';
 
 const Index = () => {
   const [itemData, setItemData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [scrollDirection, setScrollDirection] = useState('down'); // Initial scroll direction
 
   useEffect(() => {
     // Fetch food data from Firestore
@@ -37,9 +38,11 @@ const Index = () => {
     // Update Firestore document with the new availability status
     const db = firebase.firestore();
     const foodsRef = db.collection('foods');
-    
+
     // Assuming you have a field 'isAvailable' in your Firestore documents
-    foodsRef.doc(item.id).update({ isAvailable: item.isAvailable })
+    foodsRef
+      .doc(item.id)
+      .update({ isAvailable: item.isAvailable })
       .then(() => {
         console.log('Document successfully updated!');
       })
@@ -50,6 +53,61 @@ const Index = () => {
         // This can be handled based on your application's error handling strategy.
       });
   };
+
+  // Create a ref for the top button
+  const topButtonRef = useRef(null);
+
+  // Function to scroll the page to the top
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
+  // Function to scroll the page to the bottom
+  const scrollToBottom = () => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth',
+    });
+  };
+
+  // Function to toggle scroll direction
+  const toggleScrollDirection = () => {
+    setScrollDirection((prevDirection) =>
+      prevDirection === 'down' ? 'up' : 'down'
+    );
+  };
+
+  useEffect(() => {
+    // Set up an interval for automatic scrolling
+    const scrollInterval = setInterval(() => {
+      // Get the current scroll position
+      const scrollY = window.scrollY;
+      // Get the height of the viewport
+      const windowHeight = window.innerHeight;
+      // Get the height of the entire document
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // Check if the page is at the top
+      if (scrollY === 0) {
+        // If at the top, scroll down
+        setScrollDirection('down');
+        scrollToBottom();
+      } else if (scrollY + windowHeight === documentHeight) {
+        // If at the bottom, scroll up
+        setScrollDirection('up');
+        scrollToTop();
+      }
+    }, 7000); // Adjust the interval duration as needed
+
+    // Clean up the interval when the component unmounts
+    return () => {
+      clearInterval(scrollInterval);
+    };
+  }, []);
+
   return (
     <div className='min-h-screen bg-white dark:bg-white'>
       <div className="px-4 py-16 mx-auto sm:max-w-xl md:max-w-full lg:max-f-screen-xl md:px-24 lg:px-8 lg:py-20">
@@ -83,6 +141,13 @@ const Index = () => {
           </div>
         )}
       </div>
+      <button
+        ref={topButtonRef}
+        className="fixed bottom-5 right-5 z-10 px-4 py-2 text-white bg-blue-500 rounded-full shadow-md hover:bg-blue-600 transition duration-300"
+        onClick={toggleScrollDirection}
+      >
+        Toggle Scroll
+      </button>
     </div>
   );
 };
